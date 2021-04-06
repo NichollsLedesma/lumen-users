@@ -1,0 +1,43 @@
+version: "3.8"
+services:
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    
+    image: users-crud
+
+    ports:
+      - 8000:80
+    
+    volumes:
+      - .:/var/www
+
+    depends_on:
+      - "db"
+  
+    links:
+      - "db"
+
+    networks:
+      - default
+  db:
+    image: mysql:5.7
+    # volumes:
+    #   - ../.mysql:/var/lib/mysql:rw
+    #   - ./mysql/mysql-dev-init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    ports:
+      - 3306:3306
+
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
+      MYSQL_DATABASE: ${DB_DATABASE}
+      MYSQL_USER: ${DB_USERNAME}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+
+    networks:
+      - default
+
+networks:
+  default:
+    driver: bridge
