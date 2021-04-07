@@ -12,7 +12,7 @@
 				"header": [],
 				"body": {
 					"mode": "raw",
-					"raw": "{\r\n    \"email\": \"nico.ledesma@flydevs.com\",\r\n    \"password\": \"asdasd\",\r\n    \"name\": \"Nico\"\r\n}",
+					"raw": "{\r\n    \"email\": \"nicoledesma36@gmail.com\",\r\n    \"password\": \"asdasd\",\r\n    \"name\": \"Nico\"\r\n}",
 					"options": {
 						"raw": {
 							"language": "json"
@@ -99,7 +99,7 @@
 				"header": [],
 				"body": {
 					"mode": "raw",
-					"raw": "{\r\n    \"email\": \"nico.ledesma@flydevs.com\",\r\n    \"password\": \"asdasd\"\r\n}",
+					"raw": "{\r\n    \"email\": \"nicoledesma36@gmail.com\",\r\n    \"password\": \"asdasd\"\r\n}",
 					"options": {
 						"raw": {
 							"language": "json"
@@ -213,6 +213,60 @@
 						"v1",
 						"users",
 						"4"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "confirm email",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{server}}/api/v1/confirm-email?email=nicoledesma36@gmail.com&code=I0USJO0mIvbC",
+					"host": [
+						"{{server}}"
+					],
+					"path": [
+						"api",
+						"v1",
+						"confirm-email"
+					],
+					"query": [
+						{
+							"key": "email",
+							"value": "nicoledesma36@gmail.com"
+						},
+						{
+							"key": "code",
+							"value": "I0USJO0mIvbC"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "resend email",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{server}}/api/v1/resend-email?email=nicoledesma36@gmail.com",
+					"host": [
+						"{{server}}"
+					],
+					"path": [
+						"api",
+						"v1",
+						"resend-email"
+					],
+					"query": [
+						{
+							"key": "email",
+							"value": "nicoledesma36@gmail.com"
+						}
 					]
 				}
 			},

@@ -1,28 +1,38 @@
 <?php
 
-
 namespace App\Http\Controllers;
-
 
 use App\Models\User;
 use Exception;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Validation\ValidationException;
 
 class UserController extends Controller
 {
-
+    /**
+     * @param int $userId
+     * @return JsonResponse
+     */
     public function getOne(int $userId)
     {
         $user = User::where("id", $userId)->first();
 
         if (!$user) {
-            return response("user not found.", 404);
+            return response()->json(['message' => "user not found."], 404);
         }
 
         return response()->json($user, 200);
     }
 
+    /**
+     * @param int $userId
+     *
+     * @param Request $request
+     * @return JsonResponse
+     * @throws ValidationException
+     */
     public function update(int $userId, Request $request)
     {
         $this->validate($request, [
@@ -33,7 +43,7 @@ class UserController extends Controller
         $user = User::where("id", $userId)->first();
 
         if (!$user) {
-            return response("user not found.", 404);
+            return response()->json(['message' => "user not found."], 404);
         }
 
         try {
@@ -44,10 +54,13 @@ class UserController extends Controller
 
             return response()->json($user, 200);
         } catch (Exception $e) {
-            return response()->json("error updating", 500);
+            return response()->json(['message' => "error updating"], 500);
         }
     }
 
+    /**
+     * @return JsonResponse
+     */
     public function getAll()
     {
         $users = User::all();
@@ -55,16 +68,21 @@ class UserController extends Controller
         return response()->json($users, 200);
     }
 
+    /**
+     * @param int $userId
+     *
+     * @return JsonResponse
+     */
     public function remove(int $userId)
     {
         $user = User::where("id", $userId)->first();
 
         if (!$user) {
-            return response("user not found.", 404);
+            return response()->json(['message' => "user not found."], 404);
         }
 
         $user->delete();
 
-        return response("user deleted", 204);
+        return response()->json(['message' => "user deleted."], 204);
     }
 }

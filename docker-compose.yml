@@ -4,18 +4,18 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    
+
     image: users-crud
 
     ports:
       - 8000:80
-    
+
     volumes:
       - .:/var/www
 
     depends_on:
       - "db"
-  
+
     links:
       - "db"
 
@@ -23,9 +23,9 @@ services:
       - default
   db:
     image: mysql:5.7
-    # volumes:
-    #   - ../.mysql:/var/lib/mysql:rw
-    #   - ./mysql/mysql-dev-init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    volumes:
+     - ../.mysql:/var/lib/mysql:rw
+     - ./mysql/mysql-dev-init.sql:/docker-entrypoint-initdb.d/init.sql:ro
     ports:
       - 3306:3306
 
