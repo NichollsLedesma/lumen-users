@@ -2,16 +2,28 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Services\Email;
+use App\Http\Services\SmsMessage;
 use App\Mail\ConfirmedEmailMail;
+use App\Models\CustomConfig;
 use App\Models\User;
+use Exception;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Validation\ValidationException;
 
 class AuthController extends Controller
 {
+    private $emailService;
+    private $smsService;
+    private const PREFIX_COUNTRY = [
+        "ARG" => "+549"
+    ];
+
     /**
      * Create a new AuthController instance.
      *
@@ -19,6 +31,8 @@ class AuthController extends Controller
      */
     public function __construct()
     {
+        $this->emailService = new Email();
+        $this->smsService = new SmsMessage();
         $this->middleware(
             'auth:api',
             [
@@ -38,22 +52,44 @@ class AuthController extends Controller
      * @return JsonResponse
      * @throws ValidationException
      */
-    public function register(Request $request)
+    public function register(Request $request): JsonResponse
     {
         $this->validate($request, [
             "email" => "required|unique:users",
             "name" => "required",
+            "country" => "required",
+            "phone_number" => "required",
             "password" => "required"
         ]);
+        DB::beginTransaction();
 
-        $user = new User();
-        $user->email = $request->get("email");
-        $user->name = $request->get("name");
-        $user->password = Hash::make($request->get("password"));
-        $user->code_activation = $this->getCodeRandom();
-        $user->save();
+        try {
+            // create user
+            $user = new User();
+            $user->email = $request->get("email");
+            $user->name = $request->get("name");
+            $user->password = Hash::make($request->get("password"));
+            $user->code_activation = $this->getCodeRandom();
+            $user->phone_number = self::PREFIX_COUNTRY[$request->get("country")] . $request->get("phone_number");
+            $user->save();
+            // create config
+            $config = new CustomConfig();
+            $config->user_id = $user->id;
+            $config->save();
+            //commit transaction
+            DB::commit();
+            // send Email
+            $operationId = $this->emailService->sendRegisterCode($user->email, $user->code_activation);
 
-        Mail::to($user->email)->send(new ConfirmedEmailMail($user));
+            if (!$operationId) {
+                return response()->json(['message' => "user created but has problem to send email"], 201);
+            }
+        } catch (Exception $e) {
+            Log::error("Error creating user: " . $e->getMessage());
+            DB::rollBack();
+
+            return response()->json(['message' => "Error creating user: " . $e->getMessage()], 500);
+        }
 
         return response()->json($user, 201);
     }
@@ -62,6 +98,7 @@ class AuthController extends Controller
      * @param int $length
      *
      * @return string
+     * @throws Exception
      */
     private function getCodeRandom(int $length = 12): string
     {
@@ -69,7 +106,9 @@ class AuthController extends Controller
         $charactersLength = strlen($characters);
         $randomString = "";
 
-        for ($i = 0; $i < $length; $i++) $randomString .= $characters[rand(0, $charactersLength - 1)];
+        for ($i = 0; $i < $length; $i++) {
+            $randomString .= $characters[random_int(0, $charactersLength - 1)];
+        }
 
         return $randomString;
     }
@@ -80,7 +119,7 @@ class AuthController extends Controller
      * @return JsonResponse
      * @throws ValidationException
      */
-    public function resendEmail(Request $request)
+    public function resendEmail(Request $request): JsonResponse
     {
         $this->validate($request, [
             "email" => "required"
@@ -96,17 +135,19 @@ class AuthController extends Controller
             return response()->json(['message' => "User already activated"], 403);
         }
 
-        Mail::to($user->email)->send(new ConfirmedEmailMail($user));
+        // send Email
+        $this->emailService->sendRegisterCode($user->email, $user->code_activation);
 
         return response()->json(['message' => 'email sent'], 200);
     }
 
     /**
      * @param Request $request
+     *
      * @return JsonResponse
      * @throws ValidationException
      */
-    public function confirmEmail(Request $request)
+    public function confirmEmail(Request $request): JsonResponse
     {
         $this->validate($request, [
             "email" => "required",
@@ -132,27 +173,98 @@ class AuthController extends Controller
     }
 
     /**
+     * @param Request $request
+     *
+     * @return JsonResponse
+     */
+    public function updateConfig(Request $request): JsonResponse
+    {
+        $authType = $request->get("factor_auth_type");
+
+        try {
+            $config = CustomConfig::where("user_id", auth()->user()->id)->first();
+            $config->factor_authentication = $authType;
+            $config->save();
+        } catch (Exception $e) {
+            Log::error("Error saving config: " . $e->getMessage());
+
+            return response()->json(['message' => "Error saving config"], 500);
+        }
+
+        if (!$authType) {
+            return response()->json(['message' => 'Two factor authentication disabled '], 200);
+        }
+
+        return response()->json(['message' => 'Two factor authentication is active on mode: ' . $authType], 200);
+    }
+
+    /**
      * Get a JWT via given credentials.
      *
      * @return JsonResponse
      */
-    public function login()
+    public function login(): JsonResponse
     {
         $credentials = request(['email', 'password']);
+        $code = request("code");
 
         if (!$token = auth()->attempt($credentials)) {
-            return response()->json(['message' => 'Unauthorized'], 401);
+            return response()->json(['message' => 'Unauthorized'], 403);
         }
 
         $user = User::where("email", $credentials)
-            ->whereNull("email_verified_at")
+            ->whereNotNull("email_verified_at")
             ->first();
 
-        if ($user) {
+        if (!$user) {
             return response()->json(['message' => 'email not confirmed'], 401);
         }
 
+        $config = CustomConfig::where("user_id", $user->id)->first();
+
+        if (!$config->factor_authentication) {
+            return $this->respondWithToken($token);
+        }
+
+        if (!$config->code_auth) {
+            $this->sendCode2FA($user, $config);
+
+            return response()->json(['message' => 'code sended to ' . $config->factor_authentication], 200);
+        }
+
+        if (!$code) {
+            return response()->json(['message' => 'code missed'], 404);
+        }
+
+        $code_auth = $config->code_auth;
+        $config->code_auth = null;
+        $config->save();
+
+        if ($code_auth !== $code) {
+            return response()->json(['message' => 'error match codes'], 404);
+        }
+
         return $this->respondWithToken($token);
+    }
+
+    private function sendCode2FA(User $user, CustomConfig $config): bool
+    {
+        $code = $this->getCodeRandom(5);
+        $config->code_auth = $code;
+        $config->save();
+
+        switch ($config->factor_authentication) {
+            case CustomConfig::FACTOR_AUTH_TYPE_EMAIL:
+                $this->emailService->sendLoginCode($user->email, $code);
+                break;
+            case CustomConfig::FACTOR_AUTH_TYPE_PHONE:
+                $this->smsService->sendSms($user->phone_number, "Login with this code: " . $code);
+                break;
+            default:
+                return false;
+        }
+
+        return true;
     }
 
     /**
@@ -160,7 +272,7 @@ class AuthController extends Controller
      *
      * @return JsonResponse
      */
-    public function me()
+    public function me(): JsonResponse
     {
         return response()->json(auth()->user());
     }
@@ -170,7 +282,7 @@ class AuthController extends Controller
      *
      * @return JsonResponse
      */
-    public function logout()
+    public function logout(): JsonResponse
     {
         auth()->logout();
 
@@ -182,7 +294,7 @@ class AuthController extends Controller
      *
      * @return JsonResponse
      */
-    public function refresh()
+    public function refresh(): JsonResponse
     {
         return $this->respondWithToken(auth()->refresh());
     }
@@ -194,7 +306,7 @@ class AuthController extends Controller
      *
      * @return JsonResponse
      */
-    protected function respondWithToken($token)
+    protected function respondWithToken($token): JsonResponse
     {
         return response()->json([
             'access_token' => $token,

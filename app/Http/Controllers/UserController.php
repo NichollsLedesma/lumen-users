@@ -15,7 +15,7 @@ class UserController extends Controller
      * @param int $userId
      * @return JsonResponse
      */
-    public function getOne(int $userId)
+    public function getOne(int $userId): JsonResponse
     {
         $user = User::where("id", $userId)->first();
 
@@ -33,7 +33,7 @@ class UserController extends Controller
      * @return JsonResponse
      * @throws ValidationException
      */
-    public function update(int $userId, Request $request)
+    public function update(int $userId, Request $request): ?JsonResponse
     {
         $this->validate($request, [
             "email" => "unique:users",
@@ -61,7 +61,7 @@ class UserController extends Controller
     /**
      * @return JsonResponse
      */
-    public function getAll()
+    public function getAll(): JsonResponse
     {
         $users = User::all();
 
@@ -73,7 +73,7 @@ class UserController extends Controller
      *
      * @return JsonResponse
      */
-    public function remove(int $userId)
+    public function remove(int $userId): JsonResponse
     {
         $user = User::where("id", $userId)->first();
 

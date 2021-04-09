@@ -19,6 +19,7 @@ $router->get('/', function () use ($router) {
     return $router->app->version();
 });
 
+//$router->get("/test", "ExampleController@test");
 $router->group(["prefix" => "api/v1"], function () use ($router) {
     $router->post("/register", "AuthController@register");
     $router->get("/confirm-email", "AuthController@confirmEmail");
@@ -27,6 +28,7 @@ $router->group(["prefix" => "api/v1"], function () use ($router) {
 
     $router->group(["middleware" => "auth"], function () use ($router) {
         $router->get("/me", "AuthController@me");
+        $router->put("/config", "AuthController@updateConfig");
 
         $router->group(["prefix" => "users"], function () use ($router) {
             $router->get("/", "UserController@getAll");
@@ -36,3 +38,4 @@ $router->group(["prefix" => "api/v1"], function () use ($router) {
         });
     });
 });
+

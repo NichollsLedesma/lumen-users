@@ -61,18 +61,9 @@ $app->singleton(
 
 $app->configure('app');
 $app->configure('auth');
-//$app->configure('aws');
+$app->configure('aws');
 $app->configure('mail');
 $app->configure('constants');
-
-//////////////////////
-/// Aliases
-//$app->alias('mail.manager', Illuminate\Mail\MailManager::class);
-//$app->alias('mail.manager', Illuminate\Contracts\Mail\Factory::class);
-//
-//$app->alias('mailer', Illuminate\Mail\Mailer::class);
-//$app->alias('mailer', Illuminate\Contracts\Mail\Mailer::class);
-//$app->alias('mailer', Illuminate\Contracts\Mail\MailQueue::class);
 
 /*
 |--------------------------------------------------------------------------
@@ -109,7 +100,7 @@ $app->configure('constants');
 // $app->register(App\Providers\EventServiceProvider::class);
 
 $app->register(Tymon\JWTAuth\Providers\LumenServiceProvider::class);
-//$app->register(Aws\Laravel\AwsServiceProvider::class);
+$app->register(Aws\Laravel\AwsServiceProvider::class);
 $app->register(Illuminate\Mail\MailServiceProvider::class);
 
 /*

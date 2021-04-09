@@ -7,9 +7,4 @@ return [
     ],
     'region' => env('AWS_REGION', 'us-east-1'),
     'version' => 'latest',
-
-    // You can override settings for specific services
-    'Ses' => [
-        'region' => 'us-east-1',
-    ],
 ];
