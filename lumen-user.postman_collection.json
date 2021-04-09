@@ -12,7 +12,7 @@
 				"header": [],
 				"body": {
 					"mode": "raw",
-					"raw": "{\r\n    \"email\": \"nicoledesma36@gmail.com\",\r\n    \"password\": \"asdasd\",\r\n    \"name\": \"Nico\"\r\n}",
+					"raw": "{\r\n    \"email\": \"nicoledesma36@gmail.com\",\r\n    \"password\": \"asdasd\",\r\n    \"country\": \"ARG\",\r\n    \"phone_number\": \"3795070017\",\r\n    \"name\": \"Nico\"\r\n}",
 					"options": {
 						"raw": {
 							"language": "json"
@@ -99,7 +99,7 @@
 				"header": [],
 				"body": {
 					"mode": "raw",
-					"raw": "{\r\n    \"email\": \"nicoledesma36@gmail.com\",\r\n    \"password\": \"asdasd\"\r\n}",
+					"raw": "{\r\n    \"email\": \"nicoledesma36@gmail.com\",\r\n    \"password\": \"asdasd\",\r\n    \"code\": \"13qsc\"\r\n}",
 					"options": {
 						"raw": {
 							"language": "json"
@@ -267,6 +267,44 @@
 							"key": "email",
 							"value": "nicoledesma36@gmail.com"
 						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "updateConfig",
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "{{token}}",
+							"type": "string"
+						}
+					]
+				},
+				"method": "PUT",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"factor_auth_type\": \"phone\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{server}}/api/v1/config",
+					"host": [
+						"{{server}}"
+					],
+					"path": [
+						"api",
+						"v1",
+						"config"
 					]
 				}
 			},
